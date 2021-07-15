@@ -5,9 +5,10 @@ import collections
 Pt = collections.namedtuple("Pt", ["x", "y"])
 
 class Persona():
-    def __init__(self, name, ecc):
+    def __init__(self, name, ecc, curve):
         self.name = name
         self.ecc = ecc
+        self.curve = curve
         self.priv = self.choose_priv()
         self.pub = self.get_pub()
         
@@ -20,6 +21,18 @@ class Persona():
         pk = self.ecc.gen_public(self.priv)
         return pk    
     
+    def encrypt(self, plaintext, gen_point):
+        print("encrypting")
+        C1 = self.curve.mul(self.priv, gen_point)
+        to_add = self.ec.mul(self.priv, self.pub)
+        C2 = self.curve.add(plaintext, to_add)
+        return (C1, C2)
+
+    def decrypt():
+        print("decrypting")
+
+
+
 class EllipticCurve():
     def __init__(self, a, b, p):
         if (0 < a and a < p and 0 < b and b < p and p > 2):
@@ -51,8 +64,8 @@ class EllipticCurve():
         """Is the point (x,y) on this curve?"""
         # return (pt.y * pt.y - ((pt.x * pt.x + self.a) * pt.x + self.b)) % self.__p == 0
             
-        return True
-    
+        return True        
+
     def add_op(self, pt, n, t):
         """
         recursively calculate additions
@@ -113,8 +126,8 @@ def main():
     print("generator point: {} {}".format(G.x, G.y))
     ecc = ECDH(ec, G)
     
-    alice = Persona("alice", ecc)
-    bob = Persona("bob", ecc)
+    alice = Persona("alice", ecc, ec)
+    bob = Persona("bob", ecc, ec)
     
     for per in [alice, bob]:
         print("\nPersona:\t{}\npriv-key:\t{}\npub-key:\t{}\n".format(per.name, per.priv, per.pub))
