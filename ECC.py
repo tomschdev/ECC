@@ -10,6 +10,7 @@ class Persona():
         self.ecc = ecc
         self.priv = self.choose_priv()
         self.pub = self.get_pub()
+        self.secret = None
         
     def choose_priv(self):
         # return random.randint(1, 10)
@@ -17,8 +18,30 @@ class Persona():
     
     def get_pub(self):
         print("\n--- {} is generating public from priv: {} ---*".format(self.name, self.priv))
-        pk = self.ecc.gen_public(self.priv)
+        pk = self.ecc.gen_public(self.priv, None)
         return pk    
+    
+    def calc_secret(self, rcvd_pub):
+        self.secret = self.ecc.gen_public(self.priv, rcvd_pub)
+        return self.secret
+  
+        
+        
+class ECDH():
+    def __init__(self, curve, gtr):
+        self.curve = curve
+        if self.curve.contains_point(gtr):
+            self.gtr = gtr
+        else:
+            print("invalid generator")
+            # choose new one and print what it is?
+            
+    def gen_public(self, private, rcvd_pub):
+        if rcvd_pub is None:
+            return self.curve.double_op_for(self.gtr, private)
+            # print("recursive:{}\nfor loop:{}\n".format(rec, fo))
+        else:
+            return self.curve.double_op_for(rcvd_pub, private)
     
 class EllipticCurve():
     def __init__(self, a, b, p):
@@ -53,47 +76,49 @@ class EllipticCurve():
             
         return True
     
-    def add_op(self, pt, n, t):
-        """
-        recursively calculate additions
-        """
-        t+="-"
-        #TODO cover edge cases where x values are equal
-        print("{}call".format(t))
-        if n == 0:
-            print("{}base case".format(t))
-            return pt
-        else:
-            #calc tangent at from_pt
-            #get intersection of tangent
-            #to_pt = negate y coord of intersection
-            from_pt = self.add_op(pt, n-1, t)
+    # def double_op(self, pt, n, t):
+    #     """
+    #     recursively calculate additions
+    #     """
+    #     t+="-"
+    #     print("{}call".format(t))
+    #     if n == 0:
+    #         print("{}base case".format(t))
+    #         return pt
+    #     else:
+    #         from_pt = self.double_op(pt, n-1, t)
+    #         xp, yp = from_pt.x, from_pt.y 
+    #         m = (3 * xp ** 2 + self.a) / (2 * yp) 
+    #         xr = m**2 - 2*xp 
+    #         yr = yp + m * (xr - xp) 
+    #         to_pt = Pt(xr, -yr)
+    #         print("{}return: {} {}".format(t, round(to_pt.x,2), round(to_pt.y, 2)))
+    #         return to_pt
+        
+    def double_op_for(self, pt, n):
+        from_pt = pt
+        for i in range(n):
             xp, yp = from_pt.x, from_pt.y 
             m = (3 * xp ** 2 + self.a) / (2 * yp) 
             xr = m**2 - 2*xp 
             yr = yp + m * (xr - xp) 
-            to_pt = Pt(xr, -yr)
-            print("{}return: {} {}".format(t, round(to_pt.x,2), round(to_pt.y, 2)))
-            # print(to_pt)
-            return to_pt
-            # l = (3 * from_pt.x**2 + self.a) * self.inv(2 * from_pt.y, self.p) % self.p
-            # x = (l * l - 2*from_pt.x) % self.p
-            # y = (l * (from_pt.x - x) - from_pt.y) % self.p
+            from_pt = Pt(xr, -yr)
             
-            # return Pt(x, y)
+        return from_pt
+    
+    def add_op(self, P, Q):
+        xp, yp = P.x, P.y
+        xq, yq = Q.x, Q.y
+        if xp == xq:
+            return double_op_for(P, 1, " ")
+        m = (yp - yq) / (xp - xq)
+        xr = m**2 - xp - xq
+        yr = yp + m * (xr - xp)
+        return Pt(xr, -yr)
         
-        
-class ECDH():
-    def __init__(self, curve, gtr):
-        self.curve = curve
-        if self.curve.contains_point(gtr):
-            self.gtr = gtr
-        else:
-            print("invalid generator")
-            # choose new one and print what it is?
             
-    def gen_public(self, private):
-        return self.curve.add_op(self.gtr, private, " ")
+            
+
 
         
 
@@ -105,7 +130,7 @@ def main():
     G_x = 7
     a = 5
     b = 10
-    p = 100
+    p = 980
     
     ec = EllipticCurve(a,b,p)
     G_y = ec.func(G_x)
@@ -119,8 +144,12 @@ def main():
     for per in [alice, bob]:
         print("\nPersona:\t{}\npriv-key:\t{}\npub-key:\t{}\n".format(per.name, per.priv, per.pub))
     
-    
-    
+    alice.calc_secret(bob.pub)
+    bob.calc_secret(alice.pub)
+
+    for per in [alice, bob]:
+        print("\nPersona:\t{}\npriv-key:\t{}\npub-key:\t{}\nsecret:\t{}\n".format(per.name, per.priv, per.pub, per.secret))
+
 
 if __name__ == '__main__':
     main()
