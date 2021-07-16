@@ -4,6 +4,17 @@ import collections
 
 Pt = collections.namedtuple("Pt", ["x", "y"])
 
+def sqrt(n, p):
+    """sqrt on PN modulo: it may not exist
+	>>> assert (sqrt(n, q) ** 2) % q == n
+	"""
+    assert n < p
+    for i in range(1, p):
+        if i * i % p == n:
+            return (i, p - i)
+        pass
+    raise Exception("not found")
+
 class Persona():
     def __init__(self, name, ecc):
         self.name = name
@@ -13,14 +24,33 @@ class Persona():
         self.secret = None
         
     def choose_priv(self):
-        # return random.randint(1, 10)
         return random.randint(1, self.ecc.curve.p-1)
-    
+        
+
     def get_pub(self):
         print("\n--- {} is generating public from priv: {} ---*".format(self.name, self.priv))
         pk = self.ecc.gen_public(self.priv, None)
         return pk    
     
+    def encrypt(self, plaintext, gen_point, recip_pub):
+        print("\tencrypting")
+        C1 = self.pub
+        to_add = self.ecc.curve.double_op_for(recip_pub, self.priv)
+        C2 = self.ecc.curve.add_op(plaintext, to_add)
+        print("\tlocked\n")
+        return (C1, C2)
+
+    def decrypt(self, cipher):
+        print("\tdecrypting")
+        c0= cipher[0]
+        c1 = cipher[1]
+        # coord_2 = self.ecc.curve.minus(self.ecc.curve.double_op_for(c0, self.priv))
+        # return self.ecc.curve.add_op(c1, coord_2)
+        R = self.ecc.curve.double_op_for(c0, self.priv)
+        R_neg = self.ecc.curve.minus(R)
+        print("\tunlocked")
+        return self.ecc.curve.add_op(c1, R_neg)
+
     def calc_secret(self, rcvd_pub):
         self.secret = self.ecc.gen_public(self.priv, rcvd_pub)
         return self.secret
@@ -68,6 +98,11 @@ class EllipticCurve():
             
         return True
     
+    def point_at_x(self, x):
+        y_2 = (x ** 3 + self.a * x + self.b) % self.p
+        y, my = sqrt(y_2, self.p)
+        return Pt(x, y), Pt(x, my)
+
     # def double_op(self, pt, n, t):
     #     """
     #     recursively calculate additions
@@ -107,6 +142,10 @@ class EllipticCurve():
         xr = m**2 - xp - xq
         yr = yp + m * (xr - xp)
         return Pt(xr, -yr)
+	
+
+    def minus(self, p):
+        return Pt(p.x, -p.y)
         
             
 def main():
@@ -142,6 +181,16 @@ def main():
     for per in [alice, bob, eve]:
         print("\nPersona:\t{}\npriv-key:\t{}\npub-key:\t{}\nsecret: \t{}\n".format(per.name, per.priv, per.pub, per.secret))
 
+    # Elgamal process
+    print("\nElgamal commence:")
+    
+    plain_y = ec.func(11)
+    plain_pt = Pt(11, plain_y)
+    print("\tplaintext point: ", plain_pt)
+    ciphertext = alice.encrypt(plain_pt, G, bob.pub)
+    decrypted_pt = bob.decrypt(ciphertext)
+    print("\tDecrypted point: ", decrypted_pt)
+    assert round(plain_pt.x) == round(decrypted_pt.x)
 
 if __name__ == '__main__':
     main()
