@@ -191,14 +191,14 @@ def main():
 
     # Elgamal process
     print("\nElgamal commence:")
-    plaintext = 11
-    plain_y = ec.func(plaintext)
+    
+    plain_y = ec.func(11)
     plain_pt = Pt(11, plain_y)
     print("\tplaintext point: ", plain_pt)
     ciphertext = alice.encrypt(plain_pt, G, bob.pub)
     decrypted_pt = bob.decrypt(ciphertext)
     print("\tDecrypted point: ", decrypted_pt)
-    assert plain_pt == decrypted_pt
+    assert round(plain_pt.x) == round(decrypted_pt.x)
 
 if __name__ == '__main__':
     main()
