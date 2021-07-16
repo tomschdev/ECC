@@ -5,9 +5,6 @@ import collections
 Pt = collections.namedtuple("Pt", ["x", "y"])
 
 def sqrt(n, p):
-    """sqrt on PN modulo: it may not exist
-	>>> assert (sqrt(n, q) ** 2) % q == n
-	"""
     assert n < p
     for i in range(1, p):
         if i * i % p == n:
@@ -25,7 +22,6 @@ class Persona():
         
     def choose_priv(self):
         return random.randint(1, self.ecc.curve.p-1)
-        
 
     def get_pub(self):
         print("\n--- {} is generating public from priv: {} ---*".format(self.name, self.priv))
@@ -33,22 +29,16 @@ class Persona():
         return pk    
     
     def encrypt(self, plaintext, gen_point, recip_pub):
-        print("\tencrypting")
         C1 = self.pub
         to_add = self.ecc.curve.double_op_for(recip_pub, self.priv)
         C2 = self.ecc.curve.add_op(plaintext, to_add)
-        print("\tlocked\n")
         return (C1, C2)
 
     def decrypt(self, cipher):
-        print("\tdecrypting")
         c0= cipher[0]
         c1 = cipher[1]
-        # coord_2 = self.ecc.curve.minus(self.ecc.curve.double_op_for(c0, self.priv))
-        # return self.ecc.curve.add_op(c1, coord_2)
         R = self.ecc.curve.double_op_for(c0, self.priv)
         R_neg = self.ecc.curve.minus(R)
-        print("\tunlocked")
         return self.ecc.curve.add_op(c1, R_neg)
 
     def calc_secret(self, rcvd_pub):
@@ -58,16 +48,11 @@ class Persona():
 class ECDH():
     def __init__(self, curve, gtr):
         self.curve = curve
-        if self.curve.contains_point(gtr):
-            self.gtr = gtr
-        else:
-            print("invalid generator")
-            # choose new one and print what it is?
+        self.gtr = gtr
             
     def gen_public(self, private, rcvd_pub):
         if rcvd_pub is None:
             return self.curve.double_op_for(self.gtr, private)
-            # print("recursive:{}\nfor loop:{}\n".format(rec, fo))
         else:
             return self.curve.double_op_for(rcvd_pub, private)
     
@@ -80,24 +65,15 @@ class EllipticCurve():
         else:
             print("invalid curve parameters")
     
-    
     def inv(self, n, p):
         for i in range(p):
             if (n * i) % p == 1:
-                print("returning i from inv")
                 return i
     
     def func(self, x):
-        #TODO when to mod?
         x1  = x % self.p
         y = math.sqrt(x1**3 + self.a*x1 + self.b) % self.p
         return y 
-    
-    def contains_point(self, pt):
-        """Is the point (x,y) on this curve?"""
-        # return (pt.y * pt.y - ((pt.x * pt.x + self.a) * pt.x + self.b)) % self.__p == 0
-            
-        return True
     
     def point_at_x(self, x):
         y_2 = (x ** 3 + self.a * x + self.b) % self.p
@@ -150,9 +126,6 @@ class EllipticCurve():
         
             
 def main():
-    # watching this:
-    # https://www.youtube.com/watch?v=yDXiDOJgxmg
-    
     G_x = 7
     a = 5
     b = 10
@@ -184,17 +157,29 @@ def main():
 
     # Elgamal process
     print("\nElgamal commence:")
-    plaintext = "hello world"
-    plain_ascii = int(''.join(str(ord(c)) for c in plaintext))
-    print("plain ascii : {}".format(plain_ascii))
-    x = plain_ascii % p
-    plain_y = ec.func(x)
-    plain_pt = Pt(x, plain_y)
-    print("\tplaintext point: ", plain_pt)
-    ciphertext = alice.encrypt(plain_pt, G, bob.pub)
-    decrypted_pt = bob.decrypt(ciphertext)
-    print("\tDecrypted point: ", decrypted_pt)
-    assert round(plain_pt.x) == round(decrypted_pt.x)
+    plaintext = "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG"
+    print("\033[1;32;40m\tALICE INPUT:", plaintext)
+    output = []
+    interception = []
+
+    print("\tencrypting...")
+    print("\tdecrypting...")
+    for char in plaintext:
+        plain_ascii = int(''.join(str(ord(c)) for c in char))
+        # print("plain ascii: ", plain_ascii)
+        x = plain_ascii % p
+        plain_y = ec.func(x)
+        plain_pt = Pt(x, plain_y)
+        # print("\tplaintext point: ", plain_pt)
+        ciphertext = alice.encrypt(plain_pt, G, bob.pub)
+        decrypted_pt = bob.decrypt(ciphertext)
+        intercept_pt = eve.decrypt(ciphertext)
+        # print("\tDecrypted point: ", decrypted_pt)
+        output.append(chr(round(decrypted_pt.x)))
+        interception.append(str(abs(round(intercept_pt.x))))
+    print("\033[1;32;40m\tBOB OUTPUT:", ''.join(output))
+    print("\033[1;31;40m\tEVE INTERCEPTED MESSAGE:", ''.join(interception))
+    # assert round(plain_pt.x) == round(decrypted_pt.x)
 
 if __name__ == '__main__':
     main()
