@@ -24,12 +24,8 @@ class Persona():
         self.secret = None
         
     def choose_priv(self):
-        # return random.randint(1, 10)
-        # return random.randint(1, self.ecc.curve.p-1)
-        if self.name == 'alice':
-            return 10
-        else:
-            return 12
+        return random.randint(1, self.ecc.curve.p-1)
+        
 
     def get_pub(self):
         print("\n--- {} is generating public from priv: {} ---*".format(self.name, self.priv))
