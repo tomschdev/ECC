@@ -159,7 +159,7 @@ def main():
     p = 10000
     
     ec = EllipticCurve(a,b,p)
-    G_y = ec.func(G_x)
+    G_y = round(ec.func(G_x))
     G = Pt(G_x, G_y)
     print("generator point: {} {}".format(G.x, G.y))
     ecc = ECDH(ec, G)
@@ -184,9 +184,11 @@ def main():
 
     # Elgamal process
     print("\nElgamal commence:")
-    
-    plain_y = ec.func(11)
-    plain_pt = Pt(11, plain_y)
+    plaintext = "hello world"
+    plain_ascii = int(''.join(str(ord(c)) for c in plaintext))
+    x = plain_ascii % p
+    plain_y = ec.func(x)
+    plain_pt = Pt(x, plain_y)
     print("\tplaintext point: ", plain_pt)
     ciphertext = alice.encrypt(plain_pt, G, bob.pub)
     decrypted_pt = bob.decrypt(ciphertext)
