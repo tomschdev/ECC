@@ -89,7 +89,8 @@ class EllipticCurve():
     
     def func(self, x):
         #TODO when to mod?
-        y = math.sqrt(x**3 + self.a*x + self.b) % self.p
+        x1  = x % self.p
+        y = math.sqrt(x1**3 + self.a*x1 + self.b) % self.p
         return y 
     
     def contains_point(self, pt):
@@ -155,7 +156,7 @@ def main():
     G_x = 7
     a = 5
     b = 10
-    p = 100000
+    p = 10000
     
     ec = EllipticCurve(a,b,p)
     G_y = ec.func(G_x)
