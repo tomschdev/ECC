@@ -1,6 +1,7 @@
 import math
 import random
 import collections
+from sympy import *
 
 Pt = collections.namedtuple("Pt", ["x", "y"])
 
@@ -33,22 +34,20 @@ class Persona():
         return pk    
     
     def encrypt(self, plaintext, gen_point, recip_pub):
-        print("\tencrypting")
+        # print("\tencrypting")
         C1 = self.pub
         to_add = self.ecc.curve.double_op_for(recip_pub, self.priv)
         C2 = self.ecc.curve.add_op(plaintext, to_add)
-        print("\tlocked\n")
+        # print("\tlocked\n")
         return (C1, C2)
 
     def decrypt(self, cipher):
-        print("\tdecrypting")
+        # print("\tdecrypting")
         c0= cipher[0]
         c1 = cipher[1]
-        # coord_2 = self.ecc.curve.minus(self.ecc.curve.double_op_for(c0, self.priv))
-        # return self.ecc.curve.add_op(c1, coord_2)
         R = self.ecc.curve.double_op_for(c0, self.priv)
         R_neg = self.ecc.curve.minus(R)
-        print("\tunlocked")
+        # print("\tunlocked")
         return self.ecc.curve.add_op(c1, R_neg)
 
     def calc_secret(self, rcvd_pub):
@@ -186,14 +185,22 @@ def main():
     # Elgamal process
     print("\nElgamal commence:")
     plaintext = "hello world"
-    plain_ascii = int(''.join(str(ord(c)) for c in plaintext))
-    x = plain_ascii % p
-    plain_y = ec.func(x)
-    plain_pt = Pt(x, plain_y)
-    print("\tplaintext point: ", plain_pt)
-    ciphertext = alice.encrypt(plain_pt, G, bob.pub)
-    decrypted_pt = bob.decrypt(ciphertext)
-    print("\tDecrypted point: ", decrypted_pt)
+    output = []
+
+    print("\tencrypting...")
+    print("\tdecrypting...")
+    for char in plaintext:
+        plain_ascii = int(''.join(str(ord(c)) for c in char))
+        # print("plain ascii: ", plain_ascii)
+        x = plain_ascii % p
+        plain_y = ec.func(x)
+        plain_pt = Pt(x, plain_y)
+        # print("\tplaintext point: ", plain_pt)
+        ciphertext = alice.encrypt(plain_pt, G, bob.pub)
+        decrypted_pt = bob.decrypt(ciphertext)
+        # print("\tDecrypted point: ", decrypted_pt)
+        output.append(chr(round(decrypted_pt.x)))
+    print("\n\n\tOUTPUT: ", ''.join(output))
     assert round(plain_pt.x) == round(decrypted_pt.x)
 
 if __name__ == '__main__':
