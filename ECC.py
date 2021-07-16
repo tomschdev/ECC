@@ -186,6 +186,7 @@ def main():
     print("\nElgamal commence:")
     plaintext = "hello world"
     plain_ascii = int(''.join(str(ord(c)) for c in plaintext))
+    print("plain ascii : {}".format(plain_ascii))
     x = plain_ascii % p
     plain_y = ec.func(x)
     plain_pt = Pt(x, plain_y)
