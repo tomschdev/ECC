@@ -24,9 +24,7 @@ class Persona():
     def calc_secret(self, rcvd_pub):
         self.secret = self.ecc.gen_public(self.priv, rcvd_pub)
         return self.secret
-  
-        
-        
+     
 class ECDH():
     def __init__(self, curve, gtr):
         self.curve = curve
@@ -63,12 +61,6 @@ class EllipticCurve():
         #TODO when to mod?
         y = math.sqrt(x**3 + self.a*x + self.b) % self.p
         return y 
-    
-    def reflect_x(self, pt):
-        """
-        negate y coordinate of pt
-        """
-        return pt
     
     def contains_point(self, pt):
         """Is the point (x,y) on this curve?"""
@@ -110,19 +102,13 @@ class EllipticCurve():
         xp, yp = P.x, P.y
         xq, yq = Q.x, Q.y
         if xp == xq:
-            return double_op_for(P, 1, " ")
+            return self.double_op_for(P, 1, " ")
         m = (yp - yq) / (xp - xq)
         xr = m**2 - xp - xq
         yr = yp + m * (xr - xp)
         return Pt(xr, -yr)
         
             
-            
-
-
-        
-
-
 def main():
     # watching this:
     # https://www.youtube.com/watch?v=yDXiDOJgxmg
@@ -130,7 +116,7 @@ def main():
     G_x = 7
     a = 5
     b = 10
-    p = 980
+    p = 100000
     
     ec = EllipticCurve(a,b,p)
     G_y = ec.func(G_x)
@@ -140,15 +126,21 @@ def main():
     
     alice = Persona("alice", ecc)
     bob = Persona("bob", ecc)
+    eve = Persona("eve", ecc)  
     
-    for per in [alice, bob]:
+    for per in [alice, bob, eve]:
         print("\nPersona:\t{}\npriv-key:\t{}\npub-key:\t{}\n".format(per.name, per.priv, per.pub))
     
-    alice.calc_secret(bob.pub)
-    bob.calc_secret(alice.pub)
+    assert alice.calc_secret(bob.pub) == bob.calc_secret(alice.pub)
+    assert alice.calc_secret(eve.pub) == eve.calc_secret(alice.pub)
+    assert eve.calc_secret(bob.pub) == bob.calc_secret(eve.pub)
+    
+    assert alice.calc_secret(eve.pub) != alice.calc_secret(bob.pub)
+    assert bob.calc_secret(eve.pub) != bob.calc_secret(alice.pub)
+    assert eve.calc_secret(bob.pub) != eve.calc_secret(alice.pub)
 
-    for per in [alice, bob]:
-        print("\nPersona:\t{}\npriv-key:\t{}\npub-key:\t{}\nsecret:\t{}\n".format(per.name, per.priv, per.pub, per.secret))
+    for per in [alice, bob, eve]:
+        print("\nPersona:\t{}\npriv-key:\t{}\npub-key:\t{}\nsecret: \t{}\n".format(per.name, per.priv, per.pub, per.secret))
 
 
 if __name__ == '__main__':
